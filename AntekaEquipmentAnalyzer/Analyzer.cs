@@ -459,6 +459,7 @@ namespace AntekaEquipmentAnalyzer
                 idealRolls[index]++;
                 idealIncrease += maxIncrease;
             }
+            idealIncrease += (gearType == 0 && eLevel < 12) ? 8 : 0; // If its a heroic piece below 12, just add 8. It's prety likely this is the best outcome of a new sub.
         }
 
         public void AttemptToAssignRollCounts()
