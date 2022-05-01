@@ -79,6 +79,7 @@ namespace AntekaEquipmentAnalyzer
                     }
                 }
             }
+
             // Pass the hook information to the next hook procedure in chain
             return NativeMethods.CallNextHookEx(_hGlobalLlMouseHook, nCode, wParam, lParam);
         }
@@ -195,7 +196,7 @@ namespace AntekaEquipmentAnalyzer
 
         // We're going to check the average brightness of each pixel and set it to black or white based on
         // a cut off threshold.
-        public static Bitmap Polarize(Bitmap bmp, float cutoff, bool forceBlack = true, int maxColorDist = 255)
+        public static Bitmap Polarize(Bitmap bmp, float cutoff, bool forceBlack = true, int maxColorDist = 255, bool invert = false)
         {
             Rectangle rect = new Rectangle(0, 0, bmp.Width, bmp.Height);
             BitmapData bmpData = bmp.LockBits(rect, ImageLockMode.ReadWrite, bmp.PixelFormat);
@@ -227,7 +228,7 @@ namespace AntekaEquipmentAnalyzer
                     if (maxColor - minColor > maxColorDist)
                         rgbValues[counter + i] = 255;
                     else
-                        rgbValues[counter + i] = (byte)(brightness > cutoff ? (forceBlack ? 0 : (1 - brightness) * 255) : 255);
+                        rgbValues[counter + i] = (byte)(brightness > cutoff ? (forceBlack ? 0 : (invert ? brightness : 1 - brightness) * 255) : 255);
                 }
                 counter += 3;
             }
@@ -246,7 +247,9 @@ namespace AntekaEquipmentAnalyzer
             // This is the stats - I'm going to save these seperately in case I need to debug
             var cropped = CropPercent(bp, 0.02f, 0.71f, 0.40f, 0.44f);
             cropped.Save("images/stats.png");
-            Polarize(cropped, 0.2f, false, 40).Save("images/stats_polarized.png");
+            Polarize(cropped, 0.2f, false, 20, false).Save("images/stats_polarized.png");
+            cropped = CropPercent(bp, 0.02f, 0.71f, 0.40f, 0.44f);
+            Polarize(cropped, 0.2f, false, 20, true).Save("images/stats_polarized_inverted.png");
 
             // This is the gear level bubble.
             var gearLevel = CropPercent(bp, 0.074f, 0.90f, 0.14f, 0.82f);
@@ -286,7 +289,7 @@ namespace AntekaEquipmentAnalyzer
                 ((GroupBox)c).Dispose();
             flowLayoutPanel_Substats.Controls.Clear();
 
-            string sGearStats, sGearLevel, sGearType;
+            string sGearStats, sGearLevel, sGearType, sGearStatsInverted;
             // First we need to OCR all the images that have been cut to build the item.
             using (var engine = new TesseractEngine(@"./tessdata", "eng", EngineMode.Default))
             {
@@ -295,6 +298,12 @@ namespace AntekaEquipmentAnalyzer
                 using (var img = PixConverter.ToPix(bmp))
                     using (var page = engine.Process(img))
                         sGearStats = page.GetText();
+
+                bmp.Dispose();
+                bmp = (Bitmap)Bitmap.FromFile("images/stats_polarized_inverted.png");
+                using (var img = PixConverter.ToPix(bmp))
+                    using (var page = engine.Process(img))
+                        sGearStatsInverted = page.GetText();
 
                 bmp.Dispose();
                 bmp = (Bitmap)Bitmap.FromFile("images/gearlevel_polarized.png");
@@ -313,7 +322,7 @@ namespace AntekaEquipmentAnalyzer
             var gear = new Gear();
             gear.SetGearEnhanceFromString(sGearLevel);
             gear.SetGearTypeFromString(sGearType);
-            gear.AddSubstatsFromString(sGearStats);
+            gear.AddSubstatsFromString(sGearStatsInverted.Length > sGearStats.Length ? sGearStatsInverted : sGearStats);
             gear.AttemptToAssignRollCounts(); // Try to figure out where things rolled
             gear.CalculateIdealRolls();
 
@@ -423,7 +432,8 @@ namespace AntekaEquipmentAnalyzer
         public int gearType = 1; // 0 is heroic, 1 is epic
         public string gearTypeStr => gearType == 0 ? "Heroic" : "Epic";
         public int eLevel = 0;
-        public int rolls => eLevel / 3;
+        public int rolls => (eLevel / 3) - ((gearType == 0 && eLevel > 11) ? 1 : 0);
+        public int maxRolls => gearType == 0 ? 4 : 5;
         public List<Substat> subs = new List<Substat>();
 
 
@@ -432,7 +442,7 @@ namespace AntekaEquipmentAnalyzer
 
         public void CalculateIdealRolls()
         {
-            while(idealRolls.Sum() + rolls < 5)
+            while(idealRolls.Sum() + rolls < maxRolls)
             {
                 var maxIncrease = 0;
                 var index = 0;
@@ -485,6 +495,37 @@ namespace AntekaEquipmentAnalyzer
                     break;
             }
         }
+        // This shit should probaly be in another file, but fuck it
+        // Levenshtein Dist calc from https://www.dotnetperls.com/levenshtein
+        public int LevenshteinDist(string s, string t)
+        {
+            int n = s.Length;
+            int m = t.Length;
+            int[,] d = new int[n + 1, m + 1];
+            if (n == 0)
+                return m;
+            if (m == 0)
+                return n;
+            for (int i = 0; i <= n; d[i, 0] = i++) { }
+            for (int j = 0; j <= m; d[0, j] = j++) { }
+
+            // Begin looping.
+            for (int i = 1; i <= n; i++)
+            {
+                for (int j = 1; j <= m; j++)
+                {
+                    // Compute cost.
+                    int cost = (t[j - 1] == s[i - 1]) ? 0 : 1;
+                    d[i, j] = Math.Min(
+                    Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1),
+                    d[i - 1, j - 1] + cost);
+                }
+            }
+            // Return cost.
+            return d[n, m];
+        }
+
+        private readonly string[] substatNames = { "Attack", "Defense", "Health", "Effectiveness", "Effect Resistance", "Critical Hit Damage", "Critical Hit Chance", "Speed" };
         public void AddSubstatsFromString(string s)
         {
             s = Regex.Replace(s, @"\t|\n|\r", "|");
@@ -503,7 +544,20 @@ namespace AntekaEquipmentAnalyzer
                 if(index > 0)
                 {
                     var flatValue = !innerToks[index].Contains('%');
-                    switch (string.Join(" ", innerToks.Take(index)))
+                    var targetSubName = string.Join(" ", innerToks.Take(index));
+                    var minDist = int.MaxValue;
+                    var subName = string.Empty;
+                    foreach(var substatName in substatNames)
+                    {
+                        var dist = LevenshteinDist(targetSubName, substatName);
+                        if(dist < minDist)
+                        {
+                            minDist = dist;
+                            subName = substatName;
+                        }
+                    }
+
+                    switch (subName)
                     {
                         case "Attack":
                             if (flatValue)
