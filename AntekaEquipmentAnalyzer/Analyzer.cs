@@ -196,7 +196,7 @@ namespace AntekaEquipmentAnalyzer
 
         // We're going to check the average brightness of each pixel and set it to black or white based on
         // a cut off threshold.
-        public static Bitmap Polarize(Bitmap bmp, float cutoff, bool forceBlack = true)
+        public static Bitmap Polarize(Bitmap bmp, float cutoff, bool forceBlack = true, int maxColorDist = 255)
         {
             Rectangle rect = new Rectangle(0, 0, bmp.Width, bmp.Height);
             BitmapData bmpData = bmp.LockBits(rect, ImageLockMode.ReadWrite, bmp.PixelFormat);
@@ -208,13 +208,27 @@ namespace AntekaEquipmentAnalyzer
             {
                 //scan over rgb
                 var brightness = 0f;
+                var minBrightness = 255;
+                var minColor = 255;
+                var maxColor = 0;
                 for (int i = 0; i < 3; i++)
+                {
                     brightness += rgbValues[counter + i];
+                    if (rgbValues[counter + i] < minBrightness)
+                        minBrightness = rgbValues[counter + i];
+                    if (rgbValues[counter + i] < minColor)
+                        minColor = rgbValues[counter + i];
+                    if (rgbValues[counter + i] > maxColor)
+                        maxColor = rgbValues[counter + i];
+                }
                 brightness /= (255 * 3);
 
                 for (int i = 0; i < 3; i++)
                 {
-                    rgbValues[counter + i] = (byte)(brightness > cutoff ? (forceBlack ? 0 : rgbValues[counter + i]) : 255);
+                    if (maxColor - minColor > maxColorDist)
+                        rgbValues[counter + i] = 255;
+                    else
+                        rgbValues[counter + i] = (byte)(brightness > cutoff ? (forceBlack ? 0 : (1 - brightness) * 255) : 255);
                 }
                 counter += 3;
             }
@@ -233,7 +247,7 @@ namespace AntekaEquipmentAnalyzer
             // This is the stats - I'm going to save these seperately in case I need to debug
             var cropped = CropPercent(bp, 0.02f, 0.71f, 0.40f, 0.44f);
             cropped.Save("images/stats.png");
-            Polarize(cropped, 0.2f, false).Save("images/stats_polarized.png");
+            Polarize(cropped, 0.2f, false, 40).Save("images/stats_polarized.png");
 
             // This is the gear level bubble.
             var gearLevel = CropPercent(bp, 0.074f, 0.90f, 0.14f, 0.82f);
