@@ -8,6 +8,7 @@ It does generally work better on higher resolutions.
 * Doesn't support oddly-sized instances (maximized on a vertical monitor, for instance)
 * Will occasionally assign existing rolls incorrectly
 * Will occasionally calculate reforge stats incorrectly
+* The error handling is actually ass.
 
 ## How to Use
 Click on the "Select" button, then click on the display area of your emulator.
