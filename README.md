@@ -8,6 +8,7 @@ It does generally work better on higher resolutions.
 * Doesn't support oddly-sized instances (maximized on a vertical monitor, for instance)
 * Will occasionally assign existing rolls incorrectly
 * Will occasionally calculate reforge stats incorrectly
+* It doesn't calculate projected gearscore for Heroic pieces correctly at the moment.
 * The error handling is actually ass.
 
 ## How to Use
