@@ -1,5 +1,4 @@
-﻿using IronOcr;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -12,7 +11,6 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using Tesseract;
 
@@ -274,14 +272,26 @@ namespace AntekaEquipmentAnalyzer
 
             string sGearStats, sGearLevel, sGearType;
             // First we need to OCR all the images that have been cut to build the item.
-            var ocr = new IronTesseract();
-            using (var input = new OcrInput("images/stats_polarized.png"))
-                sGearStats = ocr.Read(input).Text;
-            using (var input = new OcrInput("images/gearlevel_polarized.png"))
-                sGearLevel = ocr.Read(input).Text;
-            using (var input = new OcrInput("images/geartype_polarized.png"))
-                sGearType = ocr.Read(input).Text;
+            using (var engine = new TesseractEngine(@"./tessdata", "eng", EngineMode.Default))
+            {
+                engine.DefaultPageSegMode = PageSegMode.SingleBlock;
+                Bitmap bmp = (Bitmap)Bitmap.FromFile("images/stats_polarized.png");
+                using (var img = PixConverter.ToPix(bmp))
+                    using (var page = engine.Process(img))
+                        sGearStats = page.GetText();
+                bmp.Dispose();
+                bmp = (Bitmap)Bitmap.FromFile("images/gearlevel_polarized.png");
+                using (var img = PixConverter.ToPix(bmp))
+                    using (var page = engine.Process(img))
+                        sGearLevel = page.GetText();
 
+                bmp.Dispose();
+                bmp = (Bitmap)Bitmap.FromFile("images/geartype_polarized.png");
+                using (var img = PixConverter.ToPix(bmp))
+                    using (var page = engine.Process(img))
+                        sGearType = page.GetText();
+                bmp.Dispose();
+            }
             StringBuilder sb = new StringBuilder();
 
             // Build the gear piece
@@ -414,7 +424,7 @@ namespace AntekaEquipmentAnalyzer
                 for(int i = 0; i < subs.Count; i++)
                 {
                     var sub = subs[i];
-                    int increase = (int)((sub.reforgeValues[sub.rolls + idealRolls[i] + 1] - sub.reforgeValues[sub.rolls + idealRolls[i]] + sub.maxRoll[gearType]) * sub.scoreMulti);
+                    int increase = (int)((sub.reforgeValues[sub.rolls + idealRolls[i]] - sub.reforgeValues[sub.rolls + idealRolls[i] - 1] + sub.maxRoll[gearType]) * sub.scoreMulti);
                     if (increase > maxIncrease)
                     {
                         maxIncrease = increase;
@@ -436,7 +446,7 @@ namespace AntekaEquipmentAnalyzer
             }
             while(rollsToDistribute > 0)
             {
-                var likelyTarget = subs.OrderBy(x => x.maxPotentialRolls(gearType) - x.rolls).First();
+                var likelyTarget = subs.OrderByDescending(x => x.maxPotentialRolls(gearType) - x.rolls).First();
                 likelyTarget.rolls++;
                 rollsToDistribute--;
             }
