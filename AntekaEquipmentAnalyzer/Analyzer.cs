@@ -93,6 +93,8 @@ namespace AntekaEquipmentAnalyzer
 
         [DllImport("user32.dll")]
         static extern bool GetWindowRect(IntPtr handle, ref Rectangle rect);
+        [DllImport("user32.dll")]
+        static extern bool GetClientRect(IntPtr handle, out Rectangle rect);
 
         public static Bitmap CropPercent(Bitmap b, float left, float right, float top, float bottom)
         {
@@ -157,14 +159,15 @@ namespace AntekaEquipmentAnalyzer
             return dest;
         }
 
+        // We might be able to avoid a lot of trimming/time if we capture only the client area, but
+        // In my tests bluestacks was still pulling a blank top so who knows for sure.
         static Bitmap CaptureImage()
         {
             Rectangle rect = new Rectangle();
-            GetWindowRect(_targetWindow, ref rect);
+            GetClientRect(_targetWindow, out rect);
 
-            // GetWindowRect returns Top/Left and Bottom/Right, so fix it
-            rect.Width = rect.Width - rect.X;
-            rect.Height = rect.Height - rect.Y;
+            //rect.Width = rect.Width - rect.X;
+            //rect.Height = rect.Height - rect.Y;
 
             // Create a bitmap to draw the capture into
             using (Bitmap bitmap = new Bitmap(rect.Width, rect.Height))
@@ -173,7 +176,7 @@ namespace AntekaEquipmentAnalyzer
                 using (Graphics g = Graphics.FromImage(bitmap))
                 {
                     IntPtr hdc = g.GetHdc();
-                    if (!PrintWindow(_targetWindow, hdc, 0))
+                    if (!PrintWindow(_targetWindow, hdc, 0x00000002))
                     {
                         int error = Marshal.GetLastWin32Error();
                         var exception = new System.ComponentModel.Win32Exception(error);
