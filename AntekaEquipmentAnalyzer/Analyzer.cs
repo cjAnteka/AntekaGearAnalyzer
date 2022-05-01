@@ -254,9 +254,16 @@ namespace AntekaEquipmentAnalyzer
         {
             if(_targetWindow != IntPtr.Zero)
                 CaptureImage(); //Saved image
-
-            CropImage();
-            AnalyzeGear();
+            if(!File.Exists("images/raw_screen_trimmed.png"))
+            {
+                MessageBox.Show("No image to process exists. Make sure you're selecting the correct window.", "Error",
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            else
+            {
+                CropImage();
+                AnalyzeGear();
+            }
         }
 
         private void AnalyzeGear()
