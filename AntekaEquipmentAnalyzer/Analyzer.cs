@@ -196,7 +196,7 @@ namespace AntekaEquipmentAnalyzer
 
         // We're going to check the average brightness of each pixel and set it to black or white based on
         // a cut off threshold.
-        public static Bitmap Polarize(Bitmap bmp, float cutoff)
+        public static Bitmap Polarize(Bitmap bmp, float cutoff, bool forceBlack = true)
         {
             Rectangle rect = new Rectangle(0, 0, bmp.Width, bmp.Height);
             BitmapData bmpData = bmp.LockBits(rect, ImageLockMode.ReadWrite, bmp.PixelFormat);
@@ -214,7 +214,7 @@ namespace AntekaEquipmentAnalyzer
 
                 for (int i = 0; i < 3; i++)
                 {
-                    rgbValues[counter + i] = (byte)(brightness > cutoff ? 0 : 255);
+                    rgbValues[counter + i] = (byte)(brightness > cutoff ? (forceBlack ? 0 : rgbValues[counter + i]) : 255);
                 }
                 counter += 3;
             }
@@ -233,7 +233,7 @@ namespace AntekaEquipmentAnalyzer
             // This is the stats - I'm going to save these seperately in case I need to debug
             var cropped = CropPercent(bp, 0.02f, 0.71f, 0.40f, 0.44f);
             cropped.Save("images/stats.png");
-            Polarize(cropped, 0.2f).Save("images/stats_polarized.png");
+            Polarize(cropped, 0.2f, false).Save("images/stats_polarized.png");
 
             // This is the gear level bubble.
             var gearLevel = CropPercent(bp, 0.074f, 0.90f, 0.14f, 0.82f);
@@ -282,6 +282,7 @@ namespace AntekaEquipmentAnalyzer
                 using (var img = PixConverter.ToPix(bmp))
                     using (var page = engine.Process(img))
                         sGearStats = page.GetText();
+
                 bmp.Dispose();
                 bmp = (Bitmap)Bitmap.FromFile("images/gearlevel_polarized.png");
                 using (var img = PixConverter.ToPix(bmp))
