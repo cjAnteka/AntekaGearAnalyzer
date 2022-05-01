@@ -252,9 +252,9 @@ namespace AntekaEquipmentAnalyzer
             Polarize(cropped, 0.2f, false, 20, true).Save("images/stats_polarized_inverted.png");
 
             // This is the gear level bubble.
-            var gearLevel = CropPercent(bp, 0.074f, 0.90f, 0.14f, 0.82f);
+            var gearLevel = CropPercent(bp, 0.07f, 0.89f, 0.13f, 0.82f);
             gearLevel.Save("images/gearlevel.png");
-            Polarize(gearLevel, 0.8f).Save("images/gearlevel_polarized.png");
+            Polarize(gearLevel, 0.8f, false, 20).Save("images/gearlevel_polarized.png");
 
             // This is the gear type
             var gearType = CropPercent(bp, 0.105f, 0.82f, 0.16f, 0.80f);
@@ -322,7 +322,23 @@ namespace AntekaEquipmentAnalyzer
             var gear = new Gear();
             gear.SetGearEnhanceFromString(sGearLevel);
             gear.SetGearTypeFromString(sGearType);
-            gear.AddSubstatsFromString(sGearStatsInverted.Length > sGearStats.Length ? sGearStatsInverted : sGearStats);
+
+            // Build the substats array
+            var sGearStatsToks = Regex.Replace(sGearStats, @"\t|\n|\r", "|").Split('|').Where(x => x != string.Empty).ToArray();
+            var sGearStatsInvToks = Regex.Replace(sGearStatsInverted, @"\t|\n|\r", "|").Split('|').Where(x => x != string.Empty).ToArray();
+            var sGearStatsCombined = new List<string>();
+            for(int i = 0; i < Math.Max(sGearStatsToks.Length, sGearStatsInvToks.Length); i++)
+            {
+                // If one has digits and the other does not, just add that one
+                // If they both have digits, use the longer one for now
+                if (!sGearStatsToks[i].Any(char.IsDigit) && sGearStatsInvToks[i].Any(char.IsDigit))
+                    sGearStatsCombined.Add(sGearStatsInvToks[i]);
+                else if (!sGearStatsInvToks[i].Any(char.IsDigit) && sGearStatsToks[i].Any(char.IsDigit))
+                    sGearStatsCombined.Add(sGearStatsToks[i]);
+                else
+                    sGearStatsCombined.Add(sGearStatsInvToks[i].Length > sGearStatsToks[i].Length ? sGearStatsInvToks[i] : sGearStatsToks[i]);
+            }
+            gear.AddSubstatsFromString(sGearStatsCombined.ToArray());
             gear.AttemptToAssignRollCounts(); // Try to figure out where things rolled
             gear.CalculateIdealRolls();
 
@@ -336,7 +352,9 @@ namespace AntekaEquipmentAnalyzer
             textBox_Quality.Text = $"{gear.gearTypeStr}";
 
             // Calculate weighted percent total
-            var weightedTotal = gear.gearscore / gear.subs.Sum(x => x.maxPossibleGearScoreValue(gear.gearType)) * 100;
+            var maxPossibleGearscore = gear.subs.Sum(x => x.maxPossibleGearScoreValue(gear.gearType));
+            var minPossibleGearscore = gear.subs.Sum(x => x.minPossibleGearScoreValue(gear.gearType));
+            var weightedTotal = (gear.gearscore - minPossibleGearscore) / (maxPossibleGearscore - minPossibleGearscore) * 100;
             progressBar_WeightedTotal.Value = (int)weightedTotal;
             label_WeightedTotal.Text = $"{(int)weightedTotal}%";
         }
@@ -365,7 +383,7 @@ namespace AntekaEquipmentAnalyzer
             progressBar_Percent.ForeColor = Color.Lime;
             progressBar_Percent.Location = new Point(47, 60);
             progressBar_Percent.Size = new Size(186, 10);
-            progressBar_Percent.Value = (int)(s.value / (float)s.maxPossibleValue(type) * 100);
+            progressBar_Percent.Value = (int)s.percentVal(type);
 
             //Value Textbox
             textBox_Value = new TextBox();
@@ -480,7 +498,7 @@ namespace AntekaEquipmentAnalyzer
         public void SetGearEnhanceFromString(string s)
         {
             int level = 0;
-            int.TryParse(s.Trim('+'), out level);
+            int.TryParse(s.Trim('+', '\n'), out level);
             eLevel = level;
         }
         public void SetGearTypeFromString(string s)
@@ -527,10 +545,8 @@ namespace AntekaEquipmentAnalyzer
         }
 
         private readonly string[] substatNames = { "Attack", "Defense", "Health", "Effectiveness", "Effect Resistance", "Critical Hit Damage", "Critical Hit Chance", "Speed" };
-        public void AddSubstatsFromString(string s)
+        public void AddSubstatsFromString(string[] toks)
         {
-            s = Regex.Replace(s, @"\t|\n|\r", "|");
-            var toks = s.Split('|').Where(x => x != string.Empty).ToArray();
             for(var i = 0; i < toks.Count(); i++)
             {
                 var innerToks = toks[i].Split(' ');
@@ -632,10 +648,12 @@ namespace AntekaEquipmentAnalyzer
         public float maxPotentialRolls(int type) => (float)value / minRoll[type];
         public int minPotentialRolls(int type) => (int)Math.Ceiling(((double)value / maxRoll[type]));
         public int maxPossibleValue(int type) => rolls * maxRoll[type];
+        public int minPossibleValue(int type) => rolls * minRoll[type];
         public float gearScoreValue => value * scoreMulti;
         public float maxPossibleGearScoreValue(int type) => maxPossibleValue(type) * scoreMulti;
+        public float minPossibleGearScoreValue(int type) => minPossibleValue(type) * scoreMulti;
         public float gearScoreValReforge => valueReforged * scoreMulti;
-        public float percentVal(int type) => value / (float)maxPossibleValue(type) * 100f;
+        public float percentVal(int type) => (value - minPossibleValue(type)) / (float)(maxPossibleValue(type) - minPossibleValue(type)) * 100f;
         public override string ToString() => $"{name} : {value}";
     }
     /* Fribbles GearScore Calc:
