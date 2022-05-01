@@ -29,6 +29,7 @@ namespace AntekaEquipmentAnalyzer
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Analyzer));
             this.button_SelectWindow = new System.Windows.Forms.Button();
             this.textBox_WindowSelected = new System.Windows.Forms.TextBox();
             this.groupBox_WindowSelector = new System.Windows.Forms.GroupBox();
@@ -343,6 +344,7 @@ namespace AntekaEquipmentAnalyzer
             this.Controls.Add(this.button_Check);
             this.Controls.Add(this.groupBox_WindowSelector);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "Analyzer";
             this.Text = "Anteka\'s Gear Analyzer";
             this.groupBox_WindowSelector.ResumeLayout(false);
