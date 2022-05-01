@@ -185,7 +185,6 @@ namespace AntekaEquipmentAnalyzer
                     }
                     g.ReleaseHdc(hdc);
                 }
-                // Crop the image here by percents since we can't ensure that the resolution is the same
                 Directory.CreateDirectory("images");
                 var trimmed = TrimBitmap(bitmap);
                 bitmap.Save("images/raw_screen.png");
@@ -310,8 +309,6 @@ namespace AntekaEquipmentAnalyzer
                         sGearType = page.GetText();
                 bmp.Dispose();
             }
-            StringBuilder sb = new StringBuilder();
-
             // Build the gear piece
             var gear = new Gear();
             gear.SetGearEnhanceFromString(sGearLevel);
