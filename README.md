@@ -3,12 +3,14 @@ A kinda slow but fast enough gear analyzer for EpicSeven.
 
 It does generally work better on higher resolutions.
 
+You can find the latest builds under [Releases](https://github.com/cjAnteka/AntekaGearAnalyzer/releases).
+
 ## Known Issues
 * Doesn't currently support i88 or i90 gear
 * Doesn't support oddly-sized instances (maximized on a vertical monitor, for instance)
 * Will occasionally assign existing rolls incorrectly
 * Will occasionally calculate reforge stats incorrectly
-* The error handling is actually ass.
+* The error handling is actually ass
 
 ## How to Use
 Click on the "Select" button, then click on the display area of your emulator.
