@@ -6,11 +6,11 @@ It does generally work better on higher resolutions.
 You can find the latest builds under [Releases](https://github.com/cjAnteka/AntekaGearAnalyzer/releases).
 
 ## Known Issues
-* Doesn't currently support i88 or i90 gear
+* Doesn't currently support i88 or i90 gear (some of the calculations are incorrect)
 * Doesn't support oddly-sized instances (maximized on a vertical monitor, for instance)
 * Will occasionally assign existing rolls incorrectly
 * Will occasionally calculate reforge stats incorrectly
-* The error handling is actually ass
+* The error handling is vague
 
 ## How to Use
 Click on the "Select" button, then click on the display area of your emulator.
@@ -23,4 +23,4 @@ Go to the enhance page of any piece of gear and click the big "Check" button.
 ## Something Went Wrong!
 If you encounter an exception or crash, please open an issue with the trimmed image of the item you were attempting to analyze attached. It can be found under: `AntekaEquipmentAnalyzer\images\raw_screen_trimmed.png`
 
-Alternatively, you can send it to me on Discord @ FourFangedCow#2947.
+Alternatively, you can send it to me on Discord @ FourFangedCow.
