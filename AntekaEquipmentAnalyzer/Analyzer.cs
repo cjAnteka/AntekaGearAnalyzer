@@ -20,7 +20,8 @@ namespace AntekaEquipmentAnalyzer
     {
         internal HookProc _globalLlMouseHookCallback;
         internal IntPtr _hGlobalLlMouseHook;
-        private static IntPtr _targetWindow; 
+        private static IntPtr _targetWindow;
+        public static bool _ignoreResolution = false;
 
         public Analyzer()
         {
@@ -261,10 +262,13 @@ namespace AntekaEquipmentAnalyzer
             gearType.Save("images/geartype.png");
             Polarize(gearType, 0.3f).Save("images/geartype_polarized.png");
 
-            var tooSmall = bp.Width < 1200;
+            var tooSmall = bp.Width < 1000;
             bp.Dispose();
-            if (tooSmall)
-                return !(MessageBox.Show("The size of the captured image is smaller than the recommended, this may result in errors if you proceed anyway. You can increase the size of your emulator window to get better results. Proceed anyway?", "Resolution Size Issue", MessageBoxButtons.YesNo) == System.Windows.Forms.DialogResult.No);
+            if (tooSmall && !_ignoreResolution)
+            {
+                Analyzer._ignoreResolution = true;
+                return !(MessageBox.Show("The size of the captured image is smaller than the recommended, this may result in errors if you proceed anyway. You can increase the size of your emulator window to get better results. This error will only display once. Proceed anyway?", "Resolution Size Issue", MessageBoxButtons.YesNo) == System.Windows.Forms.DialogResult.No);
+            }
             return true;
         }
 
@@ -283,7 +287,9 @@ namespace AntekaEquipmentAnalyzer
             else
             {
                 if (!CropImage())
+                {
                     return;
+                }
                 try
                 {
                     AnalyzeGear();
