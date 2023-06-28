@@ -237,7 +237,7 @@ namespace AntekaEquipmentAnalyzer
             return bmp;
         }
 
-        public void CropImage()
+        public bool CropImage()
         {
             Bitmap bp = (Bitmap)Bitmap.FromFile("images/raw_screen_trimmed.png");
 
@@ -245,23 +245,27 @@ namespace AntekaEquipmentAnalyzer
             // Hard code baby lets go.
 
             // This is the stats - I'm going to save these seperately in case I need to debug
-            var cropped = CropPercent(bp, 0.02f, 0.71f, 0.40f, 0.44f);
+            var cropped = CropPercent(bp, 0.02f, 0.71f, 0.34f, 0.5f);
             cropped.Save("images/stats.png");
             Polarize(cropped, 0.2f, false, 20, false).Save("images/stats_polarized.png");
-            cropped = CropPercent(bp, 0.02f, 0.71f, 0.40f, 0.44f);
+            cropped = CropPercent(bp, 0.02f, 0.71f, 0.34f, 0.5f);
             Polarize(cropped, 0.2f, false, 20, true).Save("images/stats_polarized_inverted.png");
 
             // This is the gear level bubble.
-            var gearLevel = CropPercent(bp, 0.07f, 0.89f, 0.13f, 0.82f);
+            var gearLevel = CropPercent(bp, 0.074f, 0.9f, 0.11f, 0.85f);
             gearLevel.Save("images/gearlevel.png");
             Polarize(gearLevel, 0.8f, false, 20).Save("images/gearlevel_polarized.png");
 
             // This is the gear type
-            var gearType = CropPercent(bp, 0.105f, 0.82f, 0.16f, 0.80f);
+            var gearType = CropPercent(bp, 0.105f, 0.82f, 0.1f, 0.82f);
             gearType.Save("images/geartype.png");
             Polarize(gearType, 0.3f).Save("images/geartype_polarized.png");
 
+            var tooSmall = bp.Width < 1200;
             bp.Dispose();
+            if (tooSmall)
+                return !(MessageBox.Show("The size of the captured image is smaller than the recommended, this may result in errors if you proceed anyway. You can increase the size of your emulator window to get better results. Proceed anyway?", "Resolution Size Issue", MessageBoxButtons.YesNo) == System.Windows.Forms.DialogResult.No);
+            return true;
         }
 
 
@@ -278,8 +282,16 @@ namespace AntekaEquipmentAnalyzer
             }
             else
             {
-                CropImage();
-                AnalyzeGear();
+                if (!CropImage())
+                    return;
+                try
+                {
+                    AnalyzeGear();
+                }
+                catch
+                {
+                    MessageBox.Show("There was an error analyzing gear. You can try resizing the emulator to potentially fix the issue. If you'd like to report the error, please add the image located in 'AntekaEquipmentAnalyzer\\images\\raw_screen_trimmed.png' to an issue on the github page.", "Error", MessageBoxButtons.OK);
+                };
             }
         }
 
